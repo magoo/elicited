@@ -2,6 +2,8 @@
 
 Helper tools to construct probability distributions built from expert elicited data for use in monte carlo simulations. 
 
+Credit to Brett Hoover with packaging by @magoo
+
 ## Usage
 
 ```
