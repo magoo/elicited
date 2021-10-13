@@ -283,13 +283,13 @@ def elicitPERT(minX,modeX,maxX):
 #
 # PYTHON 3 FUNCTION
 #
-# Pareto_b = elicitPareto(minX,maxX)
+# Pareto_b = elicitPareto(minX,maxX,pMax)
 #
 # This function solves for the shape parameter (b) describing 
 # the Pareto distribution of X from eliciting two values of the 
 # distribution: the minimum value of X (minX) and the maximum value of X 
-# (maxX), representing the 0.999999 quantile of X, or the value for which
-# a higher value would be a 1-in-a-million event. 
+# (maxX), representing the (1-pMax) quantile of X, or the value for which
+# a higher value would be an event with an exceedance probability of pMax. 
 #
 # The Pareto distribution can then be described using 
 # scipy.stats.pareto(b=Pareto_b,loc=minX-1.,scale=1.).
@@ -297,6 +297,7 @@ def elicitPERT(minX,modeX,maxX):
 # INPUTS:
 #    minX ...................................... smallest possible value of X
 #    maxX ...................................... largest possible value of X
+#    pMax ...................................... exceedance probability for P(X>maxX)
 #
 # OUTPUTS:
 #    Pareto_b .................................. b shape-parameter for Pareto distribution of X
@@ -313,24 +314,25 @@ def elicitPERT(minX,modeX,maxX):
 #
 # q(P) = (1.-P)**(-1./b) + loc
 #
-# We are eliciting a value of maxX, representing q(0.999999), or the value
-# for which a higher value of X would be a 1-in-a-million event:
+# We are eliciting a value of maxX, representing q(1-pMax), or the value
+# for which a higher value of X would be an event with an exceedance
+# probability of pMax:
 #
-# q(0.999999) = (0.000001)**(-1./b) + loc
+# q(1-pMax) = (pMax)**(-1./b) + loc
 #
 # We can solve for b, the Pareto shape parameter, as:
 #
-# b = -1./log_0.000001(q(0.999999)-loc)
+# b = -1./log_pMax(q(1-pMax)-loc)
 #
-# Where log_0.000001() is the 0.000001-base logarithm. By the logarithm 
+# Where log_pMax() is the pMax-base logarithm. By the logarithm 
 # base-change rule, this becomes:
 #
-# b = -1./(log(q(0.999999)-loc)/log(0.000001))
+# b = -1./(log(q(1-pMax)-loc)/log(pMax))
 #
 # Where log() is the natural logarithm, yielding the required parameter 
 # for the system.
 #
-def elicitPareto(minX,maxX):
+def elicitPareto(minX,maxX,pMax):
     ######################################################################
     #
     # Load required modules
@@ -347,7 +349,7 @@ def elicitPareto(minX,maxX):
     #
     # Define necessary constants
     #
-    p_big=0.999999 #...................................................... quantile probability for Xmax
+    p_big=1. - pMax #..................................................... quantile probability for Xmax
     loc_val=minX - 1. #................................................... loc parameter for (sciPy) Pareto distribution
     a=(maxX-loc_val) #.................................................... logarithm quantity (see Elicitation Strategy, above)
     #
@@ -520,5 +522,4 @@ def elicitZipf(minX,maxX,maxP,report=False):
     if report:
         print('s={:12.6f}'.format(s),'error={:10.4f}%'.format(100.*np.abs(p[idx]-maxP)/maxP))
     return s
-
 
