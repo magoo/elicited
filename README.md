@@ -24,7 +24,7 @@ from scipy.stats import poisson, zipf, beta, pareto, lognorm
 
 ### Lognormal
 
-See [Occurance and Applications](https://en.wikipedia.org/wiki/Log-normal_distribution#Occurrence_and_applications) for examples of lognormal distributions in nature, , and [elicited docs](docs/lognormal.md).
+See [Occurance and Applications](https://en.wikipedia.org/wiki/Log-normal_distribution#Occurrence_and_applications) for examples of lognormal distributions in nature, and [elicited docs](docs/lognormal.md).
 
 > **Expert**: Most customers hold around \$20K (`mode`) but I could imagine a customer with $2.5M (`max`)
 
