@@ -281,21 +281,21 @@ def elicitPERT(minX,modeX,maxX):
 #
 # PYTHON 3 FUNCTION
 #
-# Pareto_b = elicitPareto(minX,maxX,pMax)
+# Pareto_b = elicitPareto(minX,quantX,quantP=0.95)
 #
 # This function solves for the shape parameter (b) describing 
 # the Pareto distribution of X from eliciting two values of the 
-# distribution: the minimum value of X (minX) and the maximum value of X 
-# (maxX), representing the (1-pMax) quantile of X, or the value for which
-# a higher value would be an event with an exceedance probability of pMax. 
+# distribution: the minimum value of X (minX) and the quantile value of X 
+# (quantX) for the (quantP) quantile, or the value for which X>quantX
+# would be an event with an exceedance probability of 1 - quantP. 
 #
 # The Pareto distribution can then be described using 
 # scipy.stats.pareto(b=Pareto_b,loc=minX-1.,scale=1.).
 #
 # INPUTS:
 #    minX ...................................... smallest possible value of X
-#    maxX ...................................... largest possible value of X
-#    pMax ...................................... exceedance probability for P(X>maxX)
+#    quantX .................................... quantile value of X at P=quantP
+#    quantP .................................... quantile probability of quantX: Default quantP=0.95
 #
 # OUTPUTS:
 #    Pareto_b .................................. b shape-parameter for Pareto distribution of X
@@ -312,25 +312,25 @@ def elicitPERT(minX,modeX,maxX):
 #
 # q(P) = (1.-P)**(-1./b) + loc
 #
-# We are eliciting a value of maxX, representing q(1-pMax), or the value
-# for which a higher value of X would be an event with an exceedance
-# probability of pMax:
+# We are eliciting a value of quantX, representing the quantile value for
+# the quantP quantile, or the value of X for which a higher value of X 
+# would be an event with an exceedance probability of 1 - quantP:
 #
-# q(1-pMax) = (pMax)**(-1./b) + loc
+# quantX = q(quantP) = (1.-quantP)**(-1./b) + loc
 #
 # We can solve for b, the Pareto shape parameter, as:
 #
-# b = -1./log_pMax(q(1-pMax)-loc)
+# b = -1./log_[1.-quantP](quantX-loc)
 #
-# Where log_pMax() is the pMax-base logarithm. By the logarithm 
+# Where log_[1.-quantP]() is the [1.-quantP]-base logarithm. By the logarithm 
 # base-change rule, this becomes:
 #
-# b = -1./(log(q(1-pMax)-loc)/log(pMax))
+# b = -1./(log(quantX-loc)/log(1.-quantP))
 #
 # Where log() is the natural logarithm, yielding the required parameter 
 # for the system.
 #
-def elicitPareto(minX,maxX,pMax):
+def elicitPareto(minX,quantX,quantP=0.95):
     ######################################################################
     #
     # Load required modules
@@ -347,14 +347,14 @@ def elicitPareto(minX,maxX,pMax):
     #
     # Define necessary constants
     #
-    p_big=1. - pMax #..................................................... quantile probability for Xmax
     loc_val=minX - 1. #................................................... loc parameter for (sciPy) Pareto distribution
-    a=(maxX-loc_val) #.................................................... logarithm quantity (see Elicitation Strategy, above)
+    a=(quantX-loc_val) #.................................................. logarithm quantity (see Elicitation Strategy, above)
+    exceedP=1. - quantP #................................................. exceedance probability of quantX
     #
     # Define Pareto_b, use try/except block to handle errors
     #
     try:
-        Pareto_b=-1./(np.log(a)/np.log(1.-p_big))
+        Pareto_b=-1./(np.log(a)/np.log(exceedP))
     except:
         print('Error defining Pareto_b, exiting')
     #
