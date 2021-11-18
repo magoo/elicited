@@ -15,12 +15,14 @@
 #
 # PYTHON 3 FUNCTION
 #
-# logN_mu,logN_sig = elicitLogNormal(modeX,maxX)
+# logN_mu,logN_sig = elicitLogNormal(modeX,quantX,quantP=0.95)
 #
 # This function solves for the parameters describing the mean and standard
 # deviation of a log-normal distribution of X from eliciting two values of 
 # the distribution: the most common value of X (modeX) and the 
-# maximum value that might be observed (maxX).
+# quantile value (quantX) for the (quantP) quantile. We can understand
+# quantX as the value for which P(X<=quantX) = quantP, or the value whose
+# exceedance probability is 1 - quantP.
 #
 # The values of logN_mu and logN_sig correspond to the distribution of
 # Y = exp(X), or the values of the distribution projected into log-space.
@@ -29,7 +31,8 @@
 #
 # INPUTS:
 #    modeX ..................................... most common value of X
-#    maxX ...................................... largest possible value of X
+#    quantX .................................... quantile value of X
+#    quantP .................................... quantile probability of quantX (i.e. exceedance probability of quantX is 1 - quantP): Default value of quantP=0.95
 #
 # OUTPUTS:
 #    logN_mu ................................... mean of Y = exp(X)
@@ -52,15 +55,14 @@
 #
 # (1) modeX = exp(logN_mu - logN_sig**2)
 #
-# We will define some very large value of X (maxX, which represents the 
-# largest value of X we would ever expect to encounter, as the 0.999999 
-# quantile of the log-normal distribution (i.e., values of X>maxX are
-# a 1-in-a-million event). This quantile of the log-normal (logN_q) is
+# We will define some quantile value of X (quantX; i.e., values of 
+# X<=quantX have a probability of quantP, and quantX has an exceedance
+# probability of 1 - quantP). This quantile of the log-normal (logN_q) is
 # related to logN_mu and logN_sigma by:
 #
-# (2) maxX = logN_q(0.999999) = exp(logN_mu + logN_sig * N_q(0.999999))
+# (2) quantX = logN_q(quantP) = exp(logN_mu + logN_sig * N_q(quantP))
 #
-# Where N_q(0.999999) is the 0.999999 quantile value of a standard
+# Where N_q(quantP) is the quantP quantile value of a standard
 # normal distribution, which is easily computed.  
 #
 # Equations (1) and (2) have two unknowns (logN_mu and logN_sig), making
@@ -69,12 +71,12 @@
 # equation containing only logN_sig as an unknown, and yield the
 # quadratic expression:
 #
-# (3) logN_sig**2 + N_q(0.999999) * logN_sig + log(modeX) - log(maxX) = 0
+# (3) logN_sig**2 + N_q(quantP) * logN_sig + log(modeX) - log(quantX) = 0
 #
 # Thus, Equation (3) can be solved via the quadratic equation, yielding 
 # two roots as solutions for logN_sigma as:
 #
-# (4) logN_sigma = (-N_q(0.999999) +/- sqrt(N_q(0.999999)**2 - 4*(log(modeX)-log(maxX))))/2
+# (4) logN_sigma = (-N_q(quantP) +/- sqrt(N_q(quantP)**2 - 4*(log(modeX)-log(quantX))))/2
 #
 # This yields two potential values for logN_sigma that are positive, 
 # negative, or complex. We can disregard negative and complex solutions as 
@@ -83,16 +85,16 @@
 #
 # With a valid logN_sig, we can then combine:
 #
-# N_q(0.999999) * (Equation-1) + logN_sig * (Equation-2) and solve for
+# N_q(quantP) * (Equation-1) + logN_sig * (Equation-2) and solve for
 # logN_mu:
 #
-# (5) logN_mu = (N_q(0.999999) * log(modeX) + logN_sig * log(maxX))/(N_q(0.999999)+logN_sig)
+# (5) logN_mu = (N_q(quantP) * log(modeX) + logN_sig * log(quantX))/(N_q(quantP)+logN_sig)
 #
 # Yielding the required parameters for the system. The resulting log-normal
-# distribution will peak at X=modeX and its 0.999999 quantile will be maxX.
+# distribution will peak at X=modeX and its quantP quantile will be quantX.
 #
 ##########################################################################
-def elicitLogNormal(modeX,maxX):
+def elicitLogNormal(modeX,quantX,quantP=0.95):
     ######################################################################
     #
     # Load required modules
@@ -101,10 +103,6 @@ def elicitLogNormal(modeX,maxX):
     from scipy.stats import norm #........................................ normal distribution module
     #
     ######################################################################
-    #
-    # Define probability of maxX (i.e. quantile of maxX)
-    #
-    p_max = 0.999999 #.................................................... P(X>maxX)
     #
     # Initialize output as None
     #
@@ -115,11 +113,11 @@ def elicitLogNormal(modeX,maxX):
     #
     # Solve for logN_sig as roots of polynomial (Equation-3, above)
     #
-    # Define N_q(0.999999) and generate polynomial
-    N_q = norm.ppf(p_max) #............................................... quantile of standard normal distribution at P=p_max
+    # Define N_q(quantP) and generate polynomial
+    N_q = norm.ppf(quantP) #.............................................. quantile of standard normal distribution at P=quantP
     p=np.polynomial.polynomial.Polynomial( #.............................. polnomial expression
                                            [
-                                             np.log(modeX)-np.log(maxX) ,
+                                             np.log(modeX)-np.log(quantX) ,
                                              N_q                        ,
                                              1.
                                            ]
@@ -152,7 +150,7 @@ def elicitLogNormal(modeX,maxX):
         for i in range(len(p_roots)):
             logN_sig[i] = p_roots[i]
             # Solve for mean
-            m = (N_q*np.log(modeX)+p_roots[i]*np.log(maxX))/(N_q+p_roots[i])
+            m = (N_q*np.log(modeX)+p_roots[i]*np.log(quantX))/(N_q+p_roots[i])
             logN_mu[i] = m
     # Return
     return logN_mu, logN_sig
