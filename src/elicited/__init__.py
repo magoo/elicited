@@ -316,7 +316,7 @@ def elicitPERT(minX,modeX,maxX):
 # the quantP quantile, or the value of X for which a higher value of X 
 # would be an event with an exceedance probability of 1 - quantP:
 #
-# quantX = q(quantP) = (1.-quantP)**(-1./b) + loc
+# q(quantP) = (1.-quantP)**(-1./b) + loc
 #
 # We can solve for b, the Pareto shape parameter, as:
 #
@@ -375,22 +375,22 @@ def elicitPareto(minX,quantX,quantP=0.95):
 #
 # PYTHON 3 FUNCTION
 #
-# zipf_s = elicitZipf(minX,maxX,maxP,<report>)
+# zipf_s = elicitZipf(minX,quantX,quantP=0.95,report=False)
 #
 # This function solves for the single shape parameter (s) for a Zipf (or
-# zeta) distribution of X from eliciting a minimum value of X, a maximum
-# value of X, and the probability P(x>maxX). In this way, maxX can be
-# thought of as a very large value of X for which P(x>maxX) is a very
-# small probability (e.g. maxP=1.0e-06).
+# zeta) distribution of X from eliciting a minimum value of X, a quantile
+# value of X, and the quantile probability of quantX. In this way, quantX
+# can be thought of as a very large value of X for which P(x>maxX) is a very
+# small probability 1.-quantP.
 #
 # A Zipf distribution can then be defined via:
-# scipy.stats.zipf(zipf_s,maxX-1).
+# scipy.stats.zipf(zipf_s,quantX-1).
 #
 # INPUTS:
 #    minX ...................................... smallest possible value of X
-#    maxX ...................................... "largest possible" value of X
-#    maxP ...................................... very small probability P(x>maxX)
-#    report .................................... boolean for reporting error of solution, default is False
+#    quantX .................................... quantile value of X
+#    quantP ...................................... quantile probability for X=quantX: Default quantX=0.95
+#    report .................................... boolean for reporting error of solution: Default report=False
 #
 # OUTPUTS:
 #    zipf_s .................................... shape parameter of zipf distribution
@@ -426,8 +426,8 @@ def elicitPareto(minX,quantX,quantP=0.95):
 #
 # The elicitation strategy involves computing many Zipf distributions
 # across a range of values of s, and then selecting the value that best 
-# approximates P(x>maxX)=maxP. This is accomplished through two separate 
-# searches:
+# approximates P(x>quantX)=1.-quantP. This is accomplished through two 
+# separate searches:
 #
 # The first search is a coarse-resolution search to identify a range of 
 # values for s down to a value of +/- 0.1. This does not solve the value
@@ -435,23 +435,24 @@ def elicitPareto(minX,quantX,quantP=0.95):
 # search. The strategy involves starting with an extremely small value
 # for s (s must be >1, starting value is 1 plus some very small value),
 # and then looping in increments of 0.1 until a value for s that is too
-# large is found. A value too large will have P(x>maxX) < maxP. The
-# first value meeting this criteria is defined as the ceiling for s,
+# large is found. A value too large will have P(x>quantX) < 1.-quantP.
+# The first value meeting this criteria is defined as the ceiling for s,
 # and the prior value (smaller by 0.1) is defined as the floor.
 #
 # The second search is performed only within the 0.1 range defined by
 # the first search, at a resolution defined by the value of s_step.
 # All values between the floor and ceiling at a resolution of s_step
-# are used to define Zipf distributions, and P(x>maxX) is computed for
-# each of them. The value of s for which abs(P(x>maxX)-maxP) is
+# are used to define Zipf distributions, and P(x>quantX) is computed for
+# each of them. The value of s for which abs(P(x>quantX)-[1.-quantP]) is
 # minimized is the solved value for s.
 #
-# Error is defined as 100.*abs(P(x>maxX)-maxP)/maxP, or the percent
-# difference between the solved probability of exceedance and the
-# elicited value. This can be reported to the user through report=True.
+# Error is defined as 100.*abs(P(x>quantX)-[1.-quantP])/[1.-quantP], or 
+# the percent difference between the solved probability of exceedance and
+# the elicited value for the probability of exceedance. This can be 
+# reported to the user through report=True.
 #
 ##########################################################################
-def elicitZipf(minX,maxX,maxP,report=False):
+def elicitZipf(minX,quantX,quantP=0.95,report=False):
     ######################################################################
     #
     # Load required modules
@@ -468,28 +469,31 @@ def elicitZipf(minX,maxX,maxP,report=False):
     #
     k=minX-1 #............................................................ localization parameter of Zipf distribution 
     #
+    # Define exceedP, the exceedance probability for X=quantX
+    exceedP=1.-quantP #................................................... exceedance probability P(X>quantX)
+    #
     ######################################################################
     #
     # First search: Find search-volume for fitting parameter s
     #
-    # Starting with a value of s > 1.0, compute P(x<maxX) in 0.1 
-    # increments until a value P<maxP is discovered. The value of s where
-    # P(x<maxX)<maxP is found represents a ceiling on s, with the prior 
-    # searched value representing a floor on s.
+    # Starting with a value of s > 1.0, compute P(x>quantX) in 0.1 
+    # increments until a value P<exceedP is discovered. The value of s 
+    # where P(x<quantX)<exceedP is found represents a ceiling on s, with
+    # the prior searched value representing a floor on s.
     #
     s_floor = 1.0 + 1.0e-05 #............................................. initial floor for search-volume of s (tiny bit larger than 1)
-    # Define P(x>maxX) for s = s_floor
+    # Define P(x>quantX) for s = s_floor
     s = s_floor #......................................................... test-value for s
     d = zipf(s,k) #....................................................... test Zipf distribution
-    p = 1. - d.cdf(maxX) #................................................ test P(x>maxX)
-    # While p >= maxP, increment s by 0.1 and update s_floor to track
+    p = 1. - d.cdf(quantX) #.............................................. test P(x>quantX)
+    # While p >= exceedP, increment s by 0.1 and update s_floor to track
     # a 0.1-range search-volume for s until a ceiling is found with
-    # P(x>maxX) < maxP
-    while p >= maxP:
+    # P(x>quantX) < exceedP
+    while p >= exceedP:
         s_floor = s
         s = s + 0.1
         d = zipf(s,k)
-        p = 1. - d.cdf(maxX)
+        p = 1. - d.cdf(quantX)
     s_ceiling = s #....................................................... ceiling of search-volume for s
     #
     ######################################################################
@@ -497,20 +501,20 @@ def elicitZipf(minX,maxX,maxP,report=False):
     # Second search: Perform a detailed search for s between s_floor and 
     #                s_ceiling for best-fit value of s
     #
-    # Compute P(x<maxX) for s in s_step increments between s_floor and 
-    # s_ceiling and assign s to the value for which abs(P(x<maxX)-maxP) 
-    # is minimized.
+    # Compute P(x>quantX) for s in s_step increments between s_floor and 
+    # s_ceiling and assign s to the value for which 
+    # abs(P(x>quantX)-exceedP) is minimized.
     #
     s_step = 0.0001 #..................................................... resolution of search
     s_range = np.arange(s_floor,s_ceiling+s_step/10.,s_step) #............ search range
     p = np.nan * np.ones(np.shape(s_range)) #............................. P(x>maxX) for all search-values (initialized to NaN)
-    # Loop through all values of s in s_range, compute P(x>maxX)
+    # Loop through all values of s in s_range, compute P(x>quantX)
     for i in range(np.size(s_range)):
         si = s_range[i]
         d = zipf(si,k)
-        p[i] = 1. - d.cdf(maxX)
-    # Find value of s in search for minimum error in P(x>maxX)
-    idx = np.argmin(np.abs(p-maxP)) #..................................... index of best-fit s
+        p[i] = 1. - d.cdf(quantX)
+    # Find value of s in search for minimum error in P(x>quantX)
+    idx = np.argmin(np.abs(p-exceedP)) #.................................. index of best-fit s
     s = s_range[idx] #.................................................... value of best-fit s
     #
     ######################################################################
@@ -518,6 +522,6 @@ def elicitZipf(minX,maxX,maxP,report=False):
     # For report=True, report value of s and error in best-fit
     #
     if report:
-        print('s={:12.6f}'.format(s),'error={:10.4f}%'.format(100.*np.abs(p[idx]-maxP)/maxP))
+        print('s={:12.6f}'.format(s),'error={:10.4f}%'.format(100.*np.abs(p[idx]-exceedP)/exceedP))
     return s
 
