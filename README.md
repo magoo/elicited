@@ -6,11 +6,11 @@ Credit to Brett Hoover, packaging by @magoo
 
 ## Usage
 
-```
+```bash
 pip install elicited
 ```
 
-```
+```python
 import elicited as e
 ```
 
