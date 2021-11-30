@@ -15,12 +15,14 @@
 #
 # PYTHON 3 FUNCTION
 #
-# logN_mu,logN_sig = elicitLogNormal(modeX,maxX)
+# logN_mu,logN_sig = elicitLogNormal(modeX,quantX,quantP=0.95)
 #
 # This function solves for the parameters describing the mean and standard
 # deviation of a log-normal distribution of X from eliciting two values of 
 # the distribution: the most common value of X (modeX) and the 
-# maximum value that might be observed (maxX).
+# quantile value (quantX) for the (quantP) quantile. We can understand
+# quantX as the value for which P(X<=quantX) = quantP, or the value whose
+# exceedance probability is 1 - quantP.
 #
 # The values of logN_mu and logN_sig correspond to the distribution of
 # Y = exp(X), or the values of the distribution projected into log-space.
@@ -29,7 +31,8 @@
 #
 # INPUTS:
 #    modeX ..................................... most common value of X
-#    maxX ...................................... largest possible value of X
+#    quantX .................................... quantile value of X
+#    quantP .................................... quantile probability of quantX (i.e. exceedance probability of quantX is 1 - quantP): Default value of quantP=0.95
 #
 # OUTPUTS:
 #    logN_mu ................................... mean of Y = exp(X)
@@ -52,15 +55,14 @@
 #
 # (1) modeX = exp(logN_mu - logN_sig**2)
 #
-# We will define some very large value of X (maxX, which represents the 
-# largest value of X we would ever expect to encounter, as the 0.999999 
-# quantile of the log-normal distribution (i.e., values of X>maxX are
-# a 1-in-a-million event). This quantile of the log-normal (logN_q) is
+# We will define some quantile value of X (quantX; i.e., values of 
+# X<=quantX have a probability of quantP, and quantX has an exceedance
+# probability of 1 - quantP). This quantile of the log-normal (logN_q) is
 # related to logN_mu and logN_sigma by:
 #
-# (2) maxX = logN_q(0.999999) = exp(logN_mu + logN_sig * N_q(0.999999))
+# (2) quantX = logN_q(quantP) = exp(logN_mu + logN_sig * N_q(quantP))
 #
-# Where N_q(0.999999) is the 0.999999 quantile value of a standard
+# Where N_q(quantP) is the quantP quantile value of a standard
 # normal distribution, which is easily computed.  
 #
 # Equations (1) and (2) have two unknowns (logN_mu and logN_sig), making
@@ -69,12 +71,12 @@
 # equation containing only logN_sig as an unknown, and yield the
 # quadratic expression:
 #
-# (3) logN_sig**2 + N_q(0.999999) * logN_sig + log(modeX) - log(maxX) = 0
+# (3) logN_sig**2 + N_q(quantP) * logN_sig + log(modeX) - log(quantX) = 0
 #
 # Thus, Equation (3) can be solved via the quadratic equation, yielding 
 # two roots as solutions for logN_sigma as:
 #
-# (4) logN_sigma = (-N_q(0.999999) +/- sqrt(N_q(0.999999)**2 - 4*(log(modeX)-log(maxX))))/2
+# (4) logN_sigma = (-N_q(quantP) +/- sqrt(N_q(quantP)**2 - 4*(log(modeX)-log(quantX))))/2
 #
 # This yields two potential values for logN_sigma that are positive, 
 # negative, or complex. We can disregard negative and complex solutions as 
@@ -83,16 +85,16 @@
 #
 # With a valid logN_sig, we can then combine:
 #
-# N_q(0.999999) * (Equation-1) + logN_sig * (Equation-2) and solve for
+# N_q(quantP) * (Equation-1) + logN_sig * (Equation-2) and solve for
 # logN_mu:
 #
-# (5) logN_mu = (N_q(0.999999) * log(modeX) + logN_sig * log(maxX))/(N_q(0.999999)+logN_sig)
+# (5) logN_mu = (N_q(quantP) * log(modeX) + logN_sig * log(quantX))/(N_q(quantP)+logN_sig)
 #
 # Yielding the required parameters for the system. The resulting log-normal
-# distribution will peak at X=modeX and its 0.999999 quantile will be maxX.
+# distribution will peak at X=modeX and its quantP quantile will be quantX.
 #
 ##########################################################################
-def elicitLogNormal(modeX,maxX):
+def elicitLogNormal(modeX,quantX,quantP=0.95):
     ######################################################################
     #
     # Load required modules
@@ -101,10 +103,6 @@ def elicitLogNormal(modeX,maxX):
     from scipy.stats import norm #........................................ normal distribution module
     #
     ######################################################################
-    #
-    # Define probability of maxX (i.e. quantile of maxX)
-    #
-    p_max = 0.999999 #.................................................... P(X>maxX)
     #
     # Initialize output as None
     #
@@ -115,11 +113,11 @@ def elicitLogNormal(modeX,maxX):
     #
     # Solve for logN_sig as roots of polynomial (Equation-3, above)
     #
-    # Define N_q(0.999999) and generate polynomial
-    N_q = norm.ppf(p_max) #............................................... quantile of standard normal distribution at P=p_max
+    # Define N_q(quantP) and generate polynomial
+    N_q = norm.ppf(quantP) #.............................................. quantile of standard normal distribution at P=quantP
     p=np.polynomial.polynomial.Polynomial( #.............................. polnomial expression
                                            [
-                                             np.log(modeX)-np.log(maxX) ,
+                                             np.log(modeX)-np.log(quantX) ,
                                              N_q                        ,
                                              1.
                                            ]
@@ -152,7 +150,7 @@ def elicitLogNormal(modeX,maxX):
         for i in range(len(p_roots)):
             logN_sig[i] = p_roots[i]
             # Solve for mean
-            m = (N_q*np.log(modeX)+p_roots[i]*np.log(maxX))/(N_q+p_roots[i])
+            m = (N_q*np.log(modeX)+p_roots[i]*np.log(quantX))/(N_q+p_roots[i])
             logN_mu[i] = m
     # Return
     return logN_mu, logN_sig
@@ -283,21 +281,21 @@ def elicitPERT(minX,modeX,maxX):
 #
 # PYTHON 3 FUNCTION
 #
-# Pareto_b = elicitPareto(minX,maxX,pMax)
+# Pareto_b = elicitPareto(minX,quantX,quantP=0.95)
 #
 # This function solves for the shape parameter (b) describing 
 # the Pareto distribution of X from eliciting two values of the 
-# distribution: the minimum value of X (minX) and the maximum value of X 
-# (maxX), representing the (1-pMax) quantile of X, or the value for which
-# a higher value would be an event with an exceedance probability of pMax. 
+# distribution: the minimum value of X (minX) and the quantile value of X 
+# (quantX) for the (quantP) quantile, or the value for which X>quantX
+# would be an event with an exceedance probability of 1 - quantP. 
 #
 # The Pareto distribution can then be described using 
 # scipy.stats.pareto(b=Pareto_b,loc=minX-1.,scale=1.).
 #
 # INPUTS:
 #    minX ...................................... smallest possible value of X
-#    maxX ...................................... largest possible value of X
-#    pMax ...................................... exceedance probability for P(X>maxX)
+#    quantX .................................... quantile value of X at P=quantP
+#    quantP .................................... quantile probability of quantX: Default quantP=0.95
 #
 # OUTPUTS:
 #    Pareto_b .................................. b shape-parameter for Pareto distribution of X
@@ -314,25 +312,25 @@ def elicitPERT(minX,modeX,maxX):
 #
 # q(P) = (1.-P)**(-1./b) + loc
 #
-# We are eliciting a value of maxX, representing q(1-pMax), or the value
-# for which a higher value of X would be an event with an exceedance
-# probability of pMax:
+# We are eliciting a value of quantX, representing the quantile value for
+# the quantP quantile, or the value of X for which a higher value of X 
+# would be an event with an exceedance probability of 1 - quantP:
 #
-# q(1-pMax) = (pMax)**(-1./b) + loc
+# q(quantP) = (1.-quantP)**(-1./b) + loc
 #
 # We can solve for b, the Pareto shape parameter, as:
 #
-# b = -1./log_pMax(q(1-pMax)-loc)
+# b = -1./log_[1.-quantP](quantX-loc)
 #
-# Where log_pMax() is the pMax-base logarithm. By the logarithm 
+# Where log_[1.-quantP]() is the [1.-quantP]-base logarithm. By the logarithm 
 # base-change rule, this becomes:
 #
-# b = -1./(log(q(1-pMax)-loc)/log(pMax))
+# b = -1./(log(quantX-loc)/log(1.-quantP))
 #
 # Where log() is the natural logarithm, yielding the required parameter 
 # for the system.
 #
-def elicitPareto(minX,maxX,pMax):
+def elicitPareto(minX,quantX,quantP=0.95):
     ######################################################################
     #
     # Load required modules
@@ -349,14 +347,14 @@ def elicitPareto(minX,maxX,pMax):
     #
     # Define necessary constants
     #
-    p_big=1. - pMax #..................................................... quantile probability for Xmax
     loc_val=minX - 1. #................................................... loc parameter for (sciPy) Pareto distribution
-    a=(maxX-loc_val) #.................................................... logarithm quantity (see Elicitation Strategy, above)
+    a=(quantX-loc_val) #.................................................. logarithm quantity (see Elicitation Strategy, above)
+    exceedP=1. - quantP #................................................. exceedance probability of quantX
     #
     # Define Pareto_b, use try/except block to handle errors
     #
     try:
-        Pareto_b=-1./(np.log(a)/np.log(1.-p_big))
+        Pareto_b=-1./(np.log(a)/np.log(exceedP))
     except:
         print('Error defining Pareto_b, exiting')
     #
@@ -377,22 +375,22 @@ def elicitPareto(minX,maxX,pMax):
 #
 # PYTHON 3 FUNCTION
 #
-# zipf_s = elicitZipf(minX,maxX,maxP,<report>)
+# zipf_s = elicitZipf(minX,quantX,quantP=0.95,report=False)
 #
 # This function solves for the single shape parameter (s) for a Zipf (or
-# zeta) distribution of X from eliciting a minimum value of X, a maximum
-# value of X, and the probability P(x>maxX). In this way, maxX can be
-# thought of as a very large value of X for which P(x>maxX) is a very
-# small probability (e.g. maxP=1.0e-06).
+# zeta) distribution of X from eliciting a minimum value of X, a quantile
+# value of X, and the quantile probability of quantX. In this way, quantX
+# can be thought of as a very large value of X for which P(x>maxX) is a very
+# small probability 1.-quantP.
 #
 # A Zipf distribution can then be defined via:
-# scipy.stats.zipf(zipf_s,maxX-1).
+# scipy.stats.zipf(zipf_s,quantX-1).
 #
 # INPUTS:
 #    minX ...................................... smallest possible value of X
-#    maxX ...................................... "largest possible" value of X
-#    maxP ...................................... very small probability P(x>maxX)
-#    report .................................... boolean for reporting error of solution, default is False
+#    quantX .................................... quantile value of X
+#    quantP ...................................... quantile probability for X=quantX: Default quantX=0.95
+#    report .................................... boolean for reporting error of solution: Default report=False
 #
 # OUTPUTS:
 #    zipf_s .................................... shape parameter of zipf distribution
@@ -428,8 +426,8 @@ def elicitPareto(minX,maxX,pMax):
 #
 # The elicitation strategy involves computing many Zipf distributions
 # across a range of values of s, and then selecting the value that best 
-# approximates P(x>maxX)=maxP. This is accomplished through two separate 
-# searches:
+# approximates P(x>quantX)=1.-quantP. This is accomplished through two 
+# separate searches:
 #
 # The first search is a coarse-resolution search to identify a range of 
 # values for s down to a value of +/- 0.1. This does not solve the value
@@ -437,23 +435,24 @@ def elicitPareto(minX,maxX,pMax):
 # search. The strategy involves starting with an extremely small value
 # for s (s must be >1, starting value is 1 plus some very small value),
 # and then looping in increments of 0.1 until a value for s that is too
-# large is found. A value too large will have P(x>maxX) < maxP. The
-# first value meeting this criteria is defined as the ceiling for s,
+# large is found. A value too large will have P(x>quantX) < 1.-quantP.
+# The first value meeting this criteria is defined as the ceiling for s,
 # and the prior value (smaller by 0.1) is defined as the floor.
 #
 # The second search is performed only within the 0.1 range defined by
 # the first search, at a resolution defined by the value of s_step.
 # All values between the floor and ceiling at a resolution of s_step
-# are used to define Zipf distributions, and P(x>maxX) is computed for
-# each of them. The value of s for which abs(P(x>maxX)-maxP) is
+# are used to define Zipf distributions, and P(x>quantX) is computed for
+# each of them. The value of s for which abs(P(x>quantX)-[1.-quantP]) is
 # minimized is the solved value for s.
 #
-# Error is defined as 100.*abs(P(x>maxX)-maxP)/maxP, or the percent
-# difference between the solved probability of exceedance and the
-# elicited value. This can be reported to the user through report=True.
+# Error is defined as 100.*abs(P(x>quantX)-[1.-quantP])/[1.-quantP], or 
+# the percent difference between the solved probability of exceedance and
+# the elicited value for the probability of exceedance. This can be 
+# reported to the user through report=True.
 #
 ##########################################################################
-def elicitZipf(minX,maxX,maxP,report=False):
+def elicitZipf(minX,quantX,quantP=0.95,report=False):
     ######################################################################
     #
     # Load required modules
@@ -470,28 +469,31 @@ def elicitZipf(minX,maxX,maxP,report=False):
     #
     k=minX-1 #............................................................ localization parameter of Zipf distribution 
     #
+    # Define exceedP, the exceedance probability for X=quantX
+    exceedP=1.-quantP #................................................... exceedance probability P(X>quantX)
+    #
     ######################################################################
     #
     # First search: Find search-volume for fitting parameter s
     #
-    # Starting with a value of s > 1.0, compute P(x<maxX) in 0.1 
-    # increments until a value P<maxP is discovered. The value of s where
-    # P(x<maxX)<maxP is found represents a ceiling on s, with the prior 
-    # searched value representing a floor on s.
+    # Starting with a value of s > 1.0, compute P(x>quantX) in 0.1 
+    # increments until a value P<exceedP is discovered. The value of s 
+    # where P(x<quantX)<exceedP is found represents a ceiling on s, with
+    # the prior searched value representing a floor on s.
     #
     s_floor = 1.0 + 1.0e-05 #............................................. initial floor for search-volume of s (tiny bit larger than 1)
-    # Define P(x>maxX) for s = s_floor
+    # Define P(x>quantX) for s = s_floor
     s = s_floor #......................................................... test-value for s
     d = zipf(s,k) #....................................................... test Zipf distribution
-    p = 1. - d.cdf(maxX) #................................................ test P(x>maxX)
-    # While p >= maxP, increment s by 0.1 and update s_floor to track
+    p = 1. - d.cdf(quantX) #.............................................. test P(x>quantX)
+    # While p >= exceedP, increment s by 0.1 and update s_floor to track
     # a 0.1-range search-volume for s until a ceiling is found with
-    # P(x>maxX) < maxP
-    while p >= maxP:
+    # P(x>quantX) < exceedP
+    while p >= exceedP:
         s_floor = s
         s = s + 0.1
         d = zipf(s,k)
-        p = 1. - d.cdf(maxX)
+        p = 1. - d.cdf(quantX)
     s_ceiling = s #....................................................... ceiling of search-volume for s
     #
     ######################################################################
@@ -499,20 +501,20 @@ def elicitZipf(minX,maxX,maxP,report=False):
     # Second search: Perform a detailed search for s between s_floor and 
     #                s_ceiling for best-fit value of s
     #
-    # Compute P(x<maxX) for s in s_step increments between s_floor and 
-    # s_ceiling and assign s to the value for which abs(P(x<maxX)-maxP) 
-    # is minimized.
+    # Compute P(x>quantX) for s in s_step increments between s_floor and 
+    # s_ceiling and assign s to the value for which 
+    # abs(P(x>quantX)-exceedP) is minimized.
     #
     s_step = 0.0001 #..................................................... resolution of search
     s_range = np.arange(s_floor,s_ceiling+s_step/10.,s_step) #............ search range
     p = np.nan * np.ones(np.shape(s_range)) #............................. P(x>maxX) for all search-values (initialized to NaN)
-    # Loop through all values of s in s_range, compute P(x>maxX)
+    # Loop through all values of s in s_range, compute P(x>quantX)
     for i in range(np.size(s_range)):
         si = s_range[i]
         d = zipf(si,k)
-        p[i] = 1. - d.cdf(maxX)
-    # Find value of s in search for minimum error in P(x>maxX)
-    idx = np.argmin(np.abs(p-maxP)) #..................................... index of best-fit s
+        p[i] = 1. - d.cdf(quantX)
+    # Find value of s in search for minimum error in P(x>quantX)
+    idx = np.argmin(np.abs(p-exceedP)) #.................................. index of best-fit s
     s = s_range[idx] #.................................................... value of best-fit s
     #
     ######################################################################
@@ -520,6 +522,6 @@ def elicitZipf(minX,maxX,maxP,report=False):
     # For report=True, report value of s and error in best-fit
     #
     if report:
-        print('s={:12.6f}'.format(s),'error={:10.4f}%'.format(100.*np.abs(p[idx]-maxP)/maxP))
+        print('s={:12.6f}'.format(s),'error={:10.4f}%'.format(100.*np.abs(p[idx]-exceedP)/exceedP))
     return s
 
