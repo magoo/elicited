@@ -1,5 +1,7 @@
 See: https://packaging.python.org/tutorials/packaging-projects/a
+**Local install**
 
+- `pip install .` (inside `elicited` dir)
 
 **Package / pypi Build**
 - Empty the `dist/` directory

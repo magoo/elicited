@@ -33,7 +33,7 @@ See [Occurance and Applications](https://en.wikipedia.org/wiki/Log-normal_distri
 mode = 20000
 max = 2500000
 
-mean, stdv = e.elicitLogNormal(mode, max)
+mean, stdv = e.elicitLogNormal(mode,max,quantP=0.95)
 asset_values = lognorm(s=stdv, scale=np.exp(mean))
 asset_values.rvs(100)
 
@@ -43,10 +43,10 @@ asset_values.rvs(100)
 
 The 80/20 rule. See [Occurance and Applications](https://en.wikipedia.org/wiki/Pareto_distribution#Occurrence_and_applications), and [elicited technical docs](docs/pareto.md).
 
-> Expert: The legal costs of an incident could be devastating. Typically costs are almost zero (`val_min`) but a black swan could be $100M (`val_max`). 
+> Expert: The legal costs of an incident could be devastating. Typically costs are almost zero (`min`) but a black swan could be $100M (`max`). 
 
 ``` python
-b = e.elicitPareto(val_min, val_max)
+b = e.elicitPareto(min,max,quantP=0.95)
 p = pareto(b, loc=val_min-1., scale=1.))
 ```
 
@@ -71,11 +71,11 @@ See [Applications](https://en.wikipedia.org/wiki/Zipf%27s_law#Applications), and
 
 
 ``` python
-nMin = 1
-nMax = 30
-pMax = 1/1000
+min = 1
+max = 30
+p = 1/1000
 
-Zs = e.elicitZipf(nMin, nMax, pMax, report=True)
+Zs = e.elicitZipf(min,max,quantP=pMax)
 
 litigants = zipf(Zs, nMin-1)
 
