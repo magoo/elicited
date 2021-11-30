@@ -1,3 +1,6 @@
+See: https://packaging.python.org/tutorials/packaging-projects/a
+
+
 **Package / pypi Build**
 - Empty the `dist/` directory
 - `python3 -m build`
@@ -5,3 +8,8 @@
 
 **Rebuild from Pypi**
 - `pip install --upgrade elicited --force-reinstall` 
+
+If `No module named build`, install it: 
+
+- `python3 -m pip install --upgrade build`
+- `python3 -m pip install --upgrade twine`
