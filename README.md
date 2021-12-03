@@ -2,7 +2,7 @@
 
 Helper tools to construct probability distributions built from expert elicited data for use in monte carlo simulations. 
 
-Credit to Brett Hoover, packaging by @magoo
+Credit to Brett Hoover, packaging by @magoo. This is early code, happy to look at issues and feedback.
 
 ## Usage
 
@@ -14,7 +14,7 @@ pip install elicited
 import elicited as e
 ```
 
-`elicited` is just a helper tool when using numpy and scipy, so you'll need these in your code.
+`elicited` is just a helper tool when using numpy and scipy, so you'll need them in your code to pass parameters to distributions you're looking for.
 
 
 ``` python
@@ -22,7 +22,7 @@ import numpy as np
 from scipy.stats import poisson, zipf, beta, pareto, lognorm
 ```
 
-Each interface 
+
 
 ### Lognormal
 
@@ -71,7 +71,7 @@ p = pareto(b, loc=val_min-1., scale=1.))
 
 ### Zipf's
 
-`elicitZipfs` takes a `min`, and a value at quantile `max`. The default `max` quantile is a 95% percentile estimate, and can be changed with `quantP`.
+`elicitZipfs` takes a `min`, and a value at quantile `max`. The default `max` quantile is a 95% percentile estimate, and can be changed with `quantP`. This function also has a `report` argument to report error. 
 
 See [Applications](https://en.wikipedia.org/wiki/Zipf%27s_law#Applications), and [elicited technical docs](docs/zipf.md).
 
