@@ -22,7 +22,11 @@ import numpy as np
 from scipy.stats import poisson, zipf, beta, pareto, lognorm
 ```
 
+Each interface 
+
 ### Lognormal
+
+`elicitLogNormal` takes a `mode`, and a value at quantile `max`. The default `max` quantile is a 95% percentile estimate, and can be changed with `quantP`.
 
 See [Occurance and Applications](https://en.wikipedia.org/wiki/Log-normal_distribution#Occurrence_and_applications) for examples of lognormal distributions in nature, and [elicited technical docs](docs/lognormal.md).
 
@@ -33,22 +37,12 @@ See [Occurance and Applications](https://en.wikipedia.org/wiki/Log-normal_distri
 mode = 20000
 max = 2500000
 
-mean, stdv = e.elicitLogNormal(mode,max,quantP=0.95)
+mean, stdv = e.elicitLogNormal(mode, max, quantP=0.95)
 asset_values = lognorm(s=stdv, scale=np.exp(mean))
 asset_values.rvs(100)
 
 ```
 
-### Pareto
-
-The 80/20 rule. See [Occurance and Applications](https://en.wikipedia.org/wiki/Pareto_distribution#Occurrence_and_applications), and [elicited technical docs](docs/pareto.md).
-
-> Expert: The legal costs of an incident could be devastating. Typically costs are almost zero (`min`) but a black swan could be $100M (`max`). 
-
-``` python
-b = e.elicitPareto(min,max,quantP=0.95)
-p = pareto(b, loc=val_min-1., scale=1.))
-```
 
 ### PERT
 
@@ -62,12 +56,26 @@ PERT_a, PERT_b = e.elicitPERT(val_min, val_mod, val_max)
 pert = beta(PERT_a, PERT_b, loc=val_min, scale=val_max-val_min)
 ```
 
+### Pareto
+
+`elicitPareto` takes a `min`, and a value at quantile `max`. The default `max` quantile is a 95% percentile estimate, and can be changed with `quantP`.
+
+The 80/20 rule. See [Occurance and Applications](https://en.wikipedia.org/wiki/Pareto_distribution#Occurrence_and_applications), and [elicited technical docs](docs/pareto.md).
+
+> Expert: The legal costs of an incident could be devastating. Typically costs are almost zero (`min`) but a black swan could be $100M (`max`). 
+
+``` python
+b = e.elicitPareto(min, max, quantP=0.95)
+p = pareto(b, loc=val_min-1., scale=1.))
+```
 
 ### Zipf's
 
+`elicitZipfs` takes a `min`, and a value at quantile `max`. The default `max` quantile is a 95% percentile estimate, and can be changed with `quantP`.
+
 See [Applications](https://en.wikipedia.org/wiki/Zipf%27s_law#Applications), and [elicited technical docs](docs/zipf.md).
 
-> Expert: If we get sued, there will only be a few litigants (`nMin`). Very rarely it could be 30 or more litigants (`nMax`), maybe once every thousand cases (`pMax`) it would be more.
+> Expert: If we get sued, there will only be a few litigants (`min`). Very rarely it could be 30 or more litigants (`max`), maybe once every thousand cases (`p`) it would be more.
 
 
 ``` python
@@ -75,7 +83,7 @@ min = 1
 max = 30
 p = 1/1000
 
-Zs = e.elicitZipf(min,max,quantP=pMax)
+Zs = e.elicitZipf(min, max, quantP=p)
 
 litigants = zipf(Zs, nMin-1)
 
