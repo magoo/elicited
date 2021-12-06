@@ -22,6 +22,8 @@ import numpy as np
 from scipy.stats import poisson, zipf, beta, pareto, lognorm
 ```
 
+Build distributions for monte carlo trials.
+
 ```python
 # Elicted values from an expert
 mode = 20000
