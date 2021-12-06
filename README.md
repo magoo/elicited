@@ -13,6 +13,16 @@ pip install elicited
 ```python
 import elicited as e
 
+```
+`elicited` is just a helper tool when using numpy and scipy, so you'll need them in your code to pass parameters to distributions you're looking for.
+
+
+```python
+import numpy as np
+from scipy.stats import poisson, zipf, beta, pareto, lognorm
+```
+
+```python
 # Elicted values from an expert
 mode = 20000
 max = 2500000
@@ -25,16 +35,9 @@ asset_values = lognorm(s=stdv, scale=np.exp(mean))
 
 # Draw values from lognormal distribution
 asset_values.rvs(100)
-
 ```
 
-`elicited` is just a helper tool when using numpy and scipy, so you'll need them in your code to pass parameters to distributions you're looking for.
 
-
-``` python
-import numpy as np
-from scipy.stats import poisson, zipf, beta, pareto, lognorm
-```
 
 
 
